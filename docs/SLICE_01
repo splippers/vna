@@ -1513,3 +1513,33 @@ T4
 If we can make that work end to end with MARVIN's real telemetry, we stop having an architecture diagram.
 
 We have an ecosystem.
+
+---
+
+# Reconciliation With Existing T4T Code
+
+Added after inspecting the Telemetry4Toddlers code at `84b0139`.
+
+Principle: where this document and the working T4T code disagree, the existing code wins. The spec is adjusted to match it, except where noted.
+
+| Topic | Decision | Source in T4T |
+|---|---|---|
+| Evaluation threshold | `network.response.degraded` when RTT is 160 ms or more. Below 160 ms produces no Finding, including the existing 35-160 ms "ok" band. | `tierFromPing`, `server/lanScan.mjs`: under 35 good, under 160 ok, else help |
+| Unavailable ping | Produces a Finding, category `network.response.unavailable`. It must not claim the device is offline, because T4T's probe cannot tell "no reply" from "ping unavailable". | `pingRttMs` returns `null`, and the server maps `null` to `help` |
+| Fixtures | 18 ms: no Finding. 187 ms: degraded. Unavailable: unavailable Finding. | Follows the two rows above |
+| Asset identity | Derived from the existing device `id` (MAC when known, else IP), prefixed `asset:` and treated as opaque. MAC is kept as an alias. IP is kept as an attribute. A device with no MAC currently falls back to an IP-derived ID. This breaks "address is not identity" and is a known limitation of Slice 001. | `id: row.mac \|\| row.ip` |
+| Audience levels | T4T keeps its five levels. They map onto three explanation profiles: `tot` and `toddler` use Tots, `tween` and `teen` use Teens, `techTitan` uses Techies. | `LEVEL_ORDER` and `LEVEL_COPY`, `src/main.js` |
+| Probe | `pingMs` and the `/api/devices` shape do not change. A richer probe result is added beside `pingRttMs`, and `pingMs` is derived from it. | `pingRttMs` |
+| Scan ID | T4T has none today. One is generated per `scanLan()` call for `source.id`. | `scanLan` |
+| Observation ID inside a Finding | Items in `observations[]` carry an additive `id`. The contract permits unknown fields. This is not a v0.1 change. | `FINDING.md` compatibility rules |
+| Tests | `node:test`, no new dependency. Validators are hand-written from each contract's Validation Rules. | No test runner exists |
+
+## One place the spec wins over the code
+
+Changing the audience level currently re-runs a full LAN scan (`applyLevel` calls `refresh()` in `src/main.js`). Definition of Done items 14 and 15 forbid that. The front end must cache the last payload and re-render from it when the level changes. The spec wins here because it adds a requirement the old code never had.
+
+## Left alone
+
+- `/api/devices`, `tier`, `message` and `pingLabel` keep their current values and wording.
+- `neighState` still feeds the existing server tier and stays out of the Slice 001 evaluation rule.
+- The client `deriveTier` fallback stays as it is. The server tier remains authoritative.
