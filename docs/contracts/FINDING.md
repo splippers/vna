@@ -1,48 +1,199 @@
-# Finding v0.1 Schema
+# VNA Finding Schema v0.1
+
+> **One shared definition of "we found something" across the VNA ecosystem.**
 
 ## Purpose
 
-A **Finding** is a machine-readable statement that a system observed something noteworthy.
+A **Finding** is the common VNA ecosystem representation of a noteworthy condition discovered by a producer.
 
-It represents an observation, classification, or condition.
+It provides a shared language through which independently useful projects can describe things they have discovered without forcing every consumer to understand the producer's internal implementation.
 
-It does **not** represent permission to change anything.
+Potential producers include:
 
 ```text
-OBSERVE
-   ↓
-FINDING
-   ↓
-EVIDENCE
-   ↓
-RECOMMENDATION
+VNA
+SysMedic
+Charkive
+FileCity
+Vendor integrations
+Future diagnostic tools
 ```
 
-A Finding may later lead to a Proposed Action, but those are deliberately separate contracts.
+Potential consumers include:
 
-The initial ecosystem producer is expected to be Charkive, but the schema is intentionally generic enough for other Filekive components to produce findings later.
+```text
+VNA
+T4
+FileCity
+BoreDOOM!
+Reports
+Oracles
+Training environments
+Future clients
+```
+
+Not every project needs to produce Findings.
+
+Not every project needs to understand every Finding category.
+
+The contract exists so that when one component says:
+
+> **I found something.**
+
+the rest of the ecosystem has a common way to understand what that means.
+
+---
+
+# Core Principle
+
+A Finding describes reality, captured reality, historical evidence, or explicitly synthetic reality.
+
+It does not grant authority to change anything.
+
+The fundamental flow is:
+
+```text
+REALITY / SIMULATION
+        |
+        v
+   OBSERVATIONS
+        |
+        v
+      FINDING
+        |
+        +-------------------+
+        |                   |
+        v                   v
+    EXPLANATION       RECOMMENDATION
+        |                   |
+        v                   v
+       T4             HUMAN DECISION
+        |
+        v
+VISUALISATION / REPORT
+```
+
+If action is eventually appropriate:
+
+```text
+FINDING
+   |
+   v
+RECOMMENDATION
+   |
+   v
+PROPOSED ACTION
+   |
+   v
+VALIDATION
+   |
+   v
+AUTHORISATION
+   |
+   v
+EXECUTION
+   |
+   v
+VERIFICATION
+   |
+   v
+VERIFIED RESULT
+```
+
+A Finding itself does **not** authorise execution.
+
+---
+
+# Ecosystem Ownership
+
+The Finding contract belongs to the VNA common model.
+
+The canonical namespace is:
+
+```text
+vna.finding
+```
+
+Individual producers retain ownership of their specialist analysis.
+
+For example:
+
+```text
+VNA
+owns the common Finding contract
+
+Charkive
+owns Charkive detection and classification logic
+
+SysMedic
+owns SysMedic diagnostic evidence
+
+FileCity
+owns FileCity geography
+
+T4
+owns audience-specific explanation
+
+BoreDOOM!
+owns gameplay representation
+```
+
+A Charkive Finding expressed through this contract is still produced by Charkive.
+
+A FileCity representation of that Finding does not become a FileCity Finding merely because FileCity displays it.
+
+---
+
+# Canonical File Location
+
+The canonical contract should live at:
+
+```text
+vna/docs/contracts/FINDING.md
+```
+
+Related contracts should eventually live alongside it:
+
+```text
+vna/
+└── docs/
+    └── contracts/
+        ├── FINDING.md
+        ├── OBSERVATION.md
+        ├── EVENT.md
+        ├── ASSET.md
+        ├── STORAGE_LOCATION.md
+        ├── RELATIONSHIP.md
+        ├── SNAPSHOT.md
+        ├── PROPOSED_ACTION.md
+        └── VERIFIED_RESULT.md
+```
+
+VNA is the umbrella.
+
+The common contracts live here.
 
 ---
 
 # Schema Identifier
 
-Every Finding MUST identify its contract version:
+Every Finding MUST declare:
 
 ```json
 {
-  "schema": "filekive.finding/0.1"
+  "schema": "vna.finding/0.1"
 }
 ```
 
-The identifier is:
+The canonical identifier is:
 
 ```text
-filekive.finding/0.1
+vna.finding/0.1
 ```
 
-Consumers MUST NOT assume that future schema versions are structurally identical.
+Consumers MUST NOT assume future versions are structurally identical.
 
-Consumers SHOULD ignore unknown fields unless those fields are explicitly required by the schema version they implement.
+Consumers SHOULD ignore unknown fields unless those fields are explicitly required by a schema version they implement.
 
 ---
 
@@ -50,60 +201,89 @@ Consumers SHOULD ignore unknown fields unless those fields are explicitly requir
 
 ```json
 {
-  "schema": "filekive.finding/0.1",
+  "schema": "vna.finding/0.1",
   "id": "finding:0192f7b2-example",
-  "producer": "charkive",
+  "producer": {
+    "id": "charkive",
+    "type": "application",
+    "version": "2026.10"
+  },
+  "source": {
+    "kind": "live",
+    "id": "charkive:scan:0192f7b2"
+  },
   "observed_at": "2026-10-30T07:00:00Z",
   "category": "storage.disposable_candidate",
   "severity": "notice",
+  "state": "active",
   "confidence": 0.92,
   "subject": {
     "type": "storage_path",
+    "asset_id": "asset:eddie",
     "storage_location_id": "storage:eddie:data",
     "path": "Projects/example/cache.tmp"
   },
-  "classification": "candidate",
   "summary": "Likely disposable temporary data",
+  "observations": [
+    {
+      "type": "filesystem.metadata",
+      "observed_at": "2026-10-30T07:00:00Z",
+      "data": {
+        "path": "Projects/example/cache.tmp",
+        "size_bytes": 1879048192
+      }
+    }
+  ],
   "evidence": [
     {
-      "type": "rule_match",
+      "type": "charkive.rule_match",
       "rule": "temporary-file-pattern",
       "description": "Path matched a configured disposable-data rule."
     }
   ],
-  "recommended_action": {
-    "type": "review_for_quarantine"
-  },
+  "recommendations": [
+    {
+      "type": "charkive.review_for_quarantine",
+      "summary": "Review this candidate before considering reversible quarantine."
+    }
+  ],
   "production_changed": false,
   "attributes": {}
 }
 ```
 
+This example is illustrative.
+
+The contract should evolve from real implementations rather than attempting to predict every future producer.
+
 ---
 
 # Required Fields
 
-A Finding v0.1 MUST contain:
+Finding v0.1 requires:
 
 ```text
 schema
 id
 producer
+source
 observed_at
 category
 severity
+state
 subject
 summary
 production_changed
 ```
 
-The following fields are optional:
+Optional fields include:
 
 ```text
 confidence
-classification
+observations
 evidence
-recommended_action
+recommendations
+relationships
 attributes
 ```
 
@@ -124,18 +304,18 @@ Yes.
 ## v0.1 Value
 
 ```text
-filekive.finding/0.1
+vna.finding/0.1
 ```
 
 ## Purpose
 
-Identifies the contract and its version.
+Identifies the contract and version.
 
 Example:
 
 ```json
 {
-  "schema": "filekive.finding/0.1"
+  "schema": "vna.finding/0.1"
 }
 ```
 
@@ -155,7 +335,7 @@ Yes.
 
 ## Purpose
 
-Provides a stable identifier for the Finding.
+Provides the stable identity of the logical Finding.
 
 Example:
 
@@ -165,23 +345,57 @@ Example:
 }
 ```
 
-The identifier SHOULD be globally unique within the Filekive ecosystem.
+The identifier SHOULD be globally unique within the relevant VNA estate.
 
-Consumers MUST treat the ID as opaque.
+Consumers MUST treat the identifier as opaque.
 
-They MUST NOT infer semantics from its internal structure.
+They MUST NOT infer operational meaning from its internal format.
+
+A producer republishing the same logical Finding SHOULD retain its identity where practical.
+
+A genuinely distinct Finding receives a new identifier.
+
+Detailed correlation, revision, deduplication, and recurrence rules are deliberately deferred beyond v0.1.
 
 ---
 
 # Finding Identity
 
-A Finding ID identifies the logical Finding rather than merely a particular JSON serialisation of it.
+The Finding ID identifies the logical condition record rather than a particular JSON serialisation.
 
-If a producer republishes exactly the same Finding, its ID SHOULD remain stable.
+For example:
 
-A genuinely distinct observation MAY receive a new Finding ID.
+```text
+Finding:
+finding:123
 
-More sophisticated lifecycle and revision semantics are deliberately deferred beyond v0.1.
+State:
+active
+```
+
+might later become:
+
+```text
+Finding:
+finding:123
+
+State:
+acknowledged
+```
+
+and later:
+
+```text
+Finding:
+finding:123
+
+State:
+resolved
+```
+
+The same logical Finding can therefore move through its lifecycle without requiring a new ID for every state.
+
+Whether a recurring condition reactivates the existing Finding or creates a new Finding is producer policy in v0.1.
 
 ---
 
@@ -190,7 +404,7 @@ More sophisticated lifecycle and revision semantics are deliberately deferred be
 ## Type
 
 ```text
-string
+object
 ```
 
 ## Required
@@ -205,22 +419,234 @@ Example:
 
 ```json
 {
-  "producer": "charkive"
+  "producer": {
+    "id": "charkive",
+    "type": "application",
+    "version": "2026.10"
+  }
 }
 ```
 
-Possible producers may eventually include:
+## Required Producer Fields
 
 ```text
-charkive
-vna
-filecity
-other future detectors
+id
+type
 ```
 
-The producer owns the semantics of its detector and evidence.
+## Optional Producer Fields
 
-A consumer MUST NOT present itself as the producer of a Finding merely because it displays it.
+```text
+version
+instance
+```
+
+Possible producer IDs include:
+
+```text
+vna
+sysmedic
+charkive
+filecity
+vendor:<vendor>
+future:<producer>
+```
+
+Possible producer types may include:
+
+```text
+application
+collector
+adapter
+vendor
+user
+simulation
+```
+
+The producer owns the analysis that generated the Finding.
+
+A consumer MUST preserve the producer identity.
+
+---
+
+# Producer-Specific Semantics
+
+A producer may use the common Finding structure while retaining specialist evidence.
+
+For example:
+
+```text
+Charkive
+produces storage-health and archaeology Findings
+
+SysMedic
+produces machine-diagnostic Findings
+
+VNA
+produces infrastructure Findings
+```
+
+The common contract describes how those Findings are exchanged.
+
+It does not require VNA to duplicate the specialist detection logic.
+
+---
+
+# Field: `source`
+
+## Type
+
+```text
+object
+```
+
+## Required
+
+Yes.
+
+## Purpose
+
+Describes the kind of reality or scenario from which the Finding originated.
+
+This distinction is fundamental because VNA may eventually operate across:
+
+```text
+live systems
+captured systems
+historical data
+synthetic training environments
+vendor simulations
+user observations
+```
+
+## Required Source Fields
+
+```text
+kind
+```
+
+## Optional Source Fields
+
+```text
+id
+captured_at
+description
+```
+
+---
+
+# Source Kind: `live`
+
+The Finding derives from observation of a current real system.
+
+Example:
+
+```json
+{
+  "source": {
+    "kind": "live",
+    "id": "charkive:scan:1234"
+  }
+}
+```
+
+---
+
+# Source Kind: `snapshot`
+
+The Finding derives from captured real-world state.
+
+Example:
+
+```json
+{
+  "source": {
+    "kind": "snapshot",
+    "id": "sysmedic:snapshot:1234",
+    "captured_at": "2026-10-30T06:30:00Z"
+  }
+}
+```
+
+A snapshot Finding describes captured state.
+
+It MUST NOT imply that the condition still exists on the original machine.
+
+---
+
+# Source Kind: `historical`
+
+The Finding derives from retained historical evidence.
+
+Potential uses include:
+
+```text
+Charkive Data Archaeology
+historical telemetry
+previous VNA observations
+trend analysis
+activity clustering
+Temporal Anomaly analysis
+```
+
+---
+
+# Source Kind: `synthetic`
+
+The Finding was deliberately generated by a simulation or training environment.
+
+Example:
+
+```json
+{
+  "source": {
+    "kind": "synthetic",
+    "id": "tutorial:unplugged-cable"
+  }
+}
+```
+
+Synthetic Findings MUST remain distinguishable from real-system Findings.
+
+A tutorial cable being unplugged must never masquerade as a production cable incident.
+
+---
+
+# Source Kind: `vendor`
+
+The Finding originates from a vendor-supplied simulation, diagnostic package, training environment, or equipment model.
+
+Example:
+
+```json
+{
+  "source": {
+    "kind": "vendor",
+    "id": "vendor:example:scenario:42"
+  }
+}
+```
+
+Vendor provenance SHOULD be preserved where available.
+
+---
+
+# Source Kind: `user`
+
+The Finding derives primarily from a human report, annotation, or classification.
+
+Example:
+
+```json
+{
+  "source": {
+    "kind": "user",
+    "id": "user:local"
+  }
+}
+```
+
+A user assertion remains distinguishable from direct machine observation.
 
 ---
 
@@ -232,13 +658,13 @@ A consumer MUST NOT present itself as the producer of a Finding merely because i
 string
 ```
 
-## Format
-
-UTC ISO 8601 timestamp.
-
 ## Required
 
 Yes.
+
+## Format
+
+UTC ISO 8601 timestamp.
 
 Example:
 
@@ -248,20 +674,16 @@ Example:
 }
 ```
 
-## Purpose
+This represents when the relevant condition was observed or inferred from the relevant evidence.
 
-Records when the underlying condition was observed.
-
-This is not necessarily:
+For historical or snapshot Findings, this does not necessarily equal:
 
 ```text
-the time it was displayed
-the time it was transmitted
-the time it was ingested by FileCity
-the time an action subsequently occurred
+time imported
+time analysed
+time displayed
+current time
 ```
-
-Those are separate events.
 
 ---
 
@@ -279,50 +701,68 @@ Yes.
 
 ## Purpose
 
-Provides a machine-readable classification of the kind of condition observed.
+Provides a machine-readable classification of what kind of condition was found.
 
 Categories SHOULD use dotted namespaces.
 
-Example:
-
-```json
-{
-  "category": "storage.disposable_candidate"
-}
-```
-
-Initial Charkive-oriented categories may include:
+Examples:
 
 ```text
+network.physical.link_down
+network.response.degraded
+storage.capacity.warning
 storage.disposable_candidate
-storage.protected
-storage.quarantined
-storage.preflight_warning
-storage.preflight_failure
+storage.temporal_anomaly
+system.service.unavailable
+system.update.failure
+hardware.temperature.warning
+hardware.disk.health
 ```
 
-Categories should only be introduced for conditions actually understood by a producer.
+Categories should be introduced because a real producer understands the condition.
 
-Do not create fictional categories merely because a future visualisation might look entertaining.
+Do not create categories merely because a visualisation might look entertaining.
 
 ---
 
-# Category Semantics
+# Category Ownership
 
-A category describes:
-
-> **What kind of thing was observed?**
-
-It does not describe:
+Common categories SHOULD use general technical namespaces:
 
 ```text
-how serious it is
-how confident the producer is
-what should be done
-whether anything has already been changed
+network.*
+storage.*
+system.*
+hardware.*
+application.*
+security.*
 ```
 
-Those concepts have separate fields.
+Producer-specific categories SHOULD use the producer namespace where the meaning is not genuinely common.
+
+For example:
+
+```text
+charkive.archaeology.activity_cluster
+charkive.archaeology.temporal_anomaly
+sysmedic.windows.update_stalled
+```
+
+This preserves specialist semantics without pretending every producer understands them.
+
+---
+
+# Category Is Not Severity
+
+Category answers:
+
+> **What kind of thing is this?**
+
+Severity answers:
+
+> **How much attention does this deserve?**
+
+These are independent.
 
 ---
 
@@ -347,31 +787,49 @@ warning
 critical
 ```
 
-## Meaning
+---
 
-### `info`
+# Severity: `info`
 
 Useful information which does not itself indicate a problem.
 
-### `notice`
+Examples might include:
+
+```text
+interesting historical cluster
+protected data discovered
+successful state observation
+```
+
+---
+
+# Severity: `notice`
 
 Something worth bringing to the user's attention.
 
-### `warning`
+It is not necessarily urgent.
 
-A condition deserving meaningful attention or investigation.
+---
 
-### `critical`
+# Severity: `warning`
+
+A condition deserving meaningful attention, investigation, or review.
+
+---
+
+# Severity: `critical`
 
 A condition the producer considers highly important or urgent.
+
+Critical severity must not imply automatic permission to act.
 
 ---
 
 # Severity Is Not Confidence
 
-These are independent dimensions.
+Severity and confidence are independent.
 
-For example:
+Example:
 
 ```json
 {
@@ -382,7 +840,7 @@ For example:
 
 may mean:
 
-> Charkive is extremely confident about a condition which is not particularly urgent.
+> The producer is highly confident about a relatively low-importance condition.
 
 Conversely:
 
@@ -393,9 +851,289 @@ Conversely:
 }
 ```
 
-may describe something potentially very important whose exact diagnosis remains uncertain.
+may mean:
 
-Consumers MUST NOT derive one from the other.
+> The possible condition is highly important, but the exact diagnosis remains uncertain.
+
+Consumers MUST NOT derive severity from confidence or confidence from severity.
+
+---
+
+# Field: `state`
+
+## Type
+
+```text
+string
+```
+
+## Required
+
+Yes.
+
+## Allowed v0.1 Values
+
+```text
+active
+acknowledged
+resolved
+suppressed
+```
+
+Example:
+
+```json
+{
+  "state": "active"
+}
+```
+
+The state describes the current lifecycle disposition of the Finding.
+
+---
+
+# Lifecycle Overview
+
+```text
+                 ┌────────────┐
+                 │   ACTIVE   │
+                 └─────┬──────┘
+                       │
+           ┌───────────┼────────────┐
+           │           │            │
+           v           v            v
+   ACKNOWLEDGED     RESOLVED     SUPPRESSED
+           │           │            │
+           └───────────┼────────────┘
+                       │
+                       │ condition returns /
+                       │ disposition changes
+                       v
+                     ACTIVE
+```
+
+The lifecycle describes the Finding.
+
+It does not automatically describe an action.
+
+---
+
+# State: `active`
+
+The producer currently considers the Finding applicable.
+
+```text
+CONDITION OBSERVED
+       |
+       v
+     ACTIVE
+```
+
+An active Finding may require:
+
+- no action
+- review
+- investigation
+- continued observation
+- recommendation
+- a proposed action
+
+`active` does not imply urgency.
+
+Urgency belongs to `severity`.
+
+---
+
+# State: `acknowledged`
+
+The Finding has been explicitly acknowledged, but the underlying condition has not necessarily been resolved.
+
+```text
+ACTIVE
+   |
+   v
+USER / OPERATOR REVIEWS
+   |
+   v
+ACKNOWLEDGED
+```
+
+Acknowledgement means:
+
+> **We know about this.**
+
+It does not mean:
+
+> **This has been fixed.**
+
+An acknowledged Finding may remain visible.
+
+Presentation is a consumer concern.
+
+---
+
+# State: `resolved`
+
+The producer considers the condition no longer applicable.
+
+```text
+ACTIVE
+   |
+   v
+REALITY CHANGES
+   |
+   v
+REALITY RE-OBSERVED
+   |
+   v
+CONDITION NO LONGER PRESENT
+   |
+   v
+RESOLVED
+```
+
+A Finding MUST NOT be considered resolved merely because somebody attempted an operation.
+
+The preferred principle is:
+
+```text
+ACTION ATTEMPTED
+      |
+      v
+RESULT VERIFIED
+      |
+      v
+SYSTEM RE-OBSERVED
+      |
+      v
+CONDITION GONE
+      |
+      v
+RESOLVED
+```
+
+---
+
+# State: `suppressed`
+
+The Finding remains known but should not currently demand normal attention.
+
+```text
+ACTIVE
+   |
+   v
+DELIBERATE SUPPRESSION
+   |
+   v
+SUPPRESSED
+```
+
+Suppression may be appropriate when a condition is:
+
+- expected
+- deliberately accepted
+- temporarily irrelevant
+- repeatedly reported but intentionally tolerated
+- scheduled for later review
+
+Suppression does not mean the condition disappeared.
+
+---
+
+# Suppressed Is Not Resolved
+
+```text
+RESOLVED
+
+The condition is no longer considered present.
+```
+
+```text
+SUPPRESSED
+
+The condition may still exist, but normal attention has deliberately been reduced.
+```
+
+Consumers MUST preserve this distinction.
+
+---
+
+# Lifecycle Transitions
+
+Finding v0.1 permits:
+
+```text
+active → acknowledged
+active → resolved
+active → suppressed
+
+acknowledged → active
+acknowledged → resolved
+acknowledged → suppressed
+
+suppressed → active
+suppressed → resolved
+
+resolved → active
+```
+
+Consumers MUST NOT assume every transition was initiated manually.
+
+A producer may change state after re-observing reality.
+
+---
+
+# Reactivation
+
+A resolved Finding may become active again if the condition returns.
+
+```text
+RESOLVED
+   |
+   v
+CONDITION RETURNS
+   |
+   v
+ACTIVE
+```
+
+Whether recurrence reactivates the existing Finding or creates a new Finding is producer policy in v0.1.
+
+---
+
+# State Is Not Severity
+
+These are all valid:
+
+```json
+{
+  "state": "active",
+  "severity": "critical"
+}
+```
+
+```json
+{
+  "state": "acknowledged",
+  "severity": "critical"
+}
+```
+
+```json
+{
+  "state": "suppressed",
+  "severity": "warning"
+}
+```
+
+```json
+{
+  "state": "resolved",
+  "severity": "warning"
+}
+```
+
+Lifecycle state does not rewrite the Finding's meaning.
 
 ---
 
@@ -425,29 +1163,20 @@ Example:
 }
 ```
 
-## Meaning
-
-Where the producer supports confidence scoring:
+Where meaningful:
 
 ```text
 0.0 = minimum confidence
 1.0 = maximum confidence
 ```
 
-The absence of this field means:
+A producer which cannot calculate meaningful confidence SHOULD omit the field.
+
+Missing confidence means:
 
 > **No confidence value was supplied.**
 
-It MUST NOT automatically be interpreted as:
-
-```text
-0.0
-0.5
-1.0
-unknown quality
-```
-
-A producer which cannot calculate meaningful confidence SHOULD omit the field.
+It does not mean zero confidence.
 
 ---
 
@@ -467,20 +1196,47 @@ Yes.
 
 Identifies what the Finding concerns.
 
-For the initial Charkive/FileCity integration, the primary subject type is:
+Initial subject types may include:
 
 ```text
+asset
+storage_location
 storage_path
+service
+network_interface
+application
+collection
 ```
+
+The model should grow carefully from actual use.
+
+---
+
+# Subject: `asset`
 
 Example:
 
 ```json
 {
   "subject": {
-    "type": "storage_path",
-    "storage_location_id": "storage:eddie:data",
-    "path": "Projects/example/cache.tmp"
+    "type": "asset",
+    "asset_id": "asset:eddie"
+  }
+}
+```
+
+---
+
+# Subject: `storage_location`
+
+Example:
+
+```json
+{
+  "subject": {
+    "type": "storage_location",
+    "asset_id": "asset:eddie",
+    "storage_location_id": "storage:eddie:data"
   }
 }
 ```
@@ -489,100 +1245,54 @@ Example:
 
 # Subject: `storage_path`
 
-A storage-path subject contains:
+Example:
 
-```text
-type
-storage_location_id
-path
+```json
+{
+  "subject": {
+    "type": "storage_path",
+    "asset_id": "asset:eddie",
+    "storage_location_id": "storage:eddie:data",
+    "path": "Projects/cache"
+  }
+}
 ```
+
+The path SHOULD be relative to the referenced storage location where practical.
+
+Consumers MUST NOT assume that every path uses Windows, Linux, or macOS absolute-path semantics.
+
+---
+
+# Subject: `service`
 
 Example:
 
 ```json
 {
-  "type": "storage_path",
-  "storage_location_id": "storage:eddie:data",
-  "path": "Projects/cache"
+  "subject": {
+    "type": "service",
+    "asset_id": "asset:server-42",
+    "service_id": "service:web"
+  }
 }
 ```
 
-`storage_location_id` identifies the storage location using the Filekive Storage Location contract.
-
-`path` identifies the target relative to that storage location.
-
-The path SHOULD NOT be assumed to use a particular operating system's absolute path syntax.
-
-This allows FileCity to resolve:
-
-```text
-storage location
-+
-relative path
-```
-
-into its own geography.
-
 ---
 
-# Future Subject Types
-
-Future schema versions may support subjects such as:
-
-```text
-asset
-service
-network
-account
-world_object
-storage_location
-```
-
-Consumers implementing v0.1 SHOULD NOT invent semantics for unknown subject types.
-
----
-
-# Field: `classification`
-
-## Type
-
-```text
-string
-```
-
-## Required
-
-No.
-
-## Purpose
-
-Provides the producer's human/domain-oriented classification of the subject.
+# Subject: `network_interface`
 
 Example:
 
 ```json
 {
-  "classification": "candidate"
+  "subject": {
+    "type": "network_interface",
+    "asset_id": "asset:server-42",
+    "interface_id": "interface:eth0"
+  }
 }
 ```
-
-For Charkive, possible values may be derived from its actual classification vocabulary.
-
-`classification` differs from `category`.
-
-For example:
-
-```text
-category:
-storage.disposable_candidate
-
-classification:
-candidate
-```
-
-`category` is intended for cross-system machine interpretation.
-
-`classification` preserves useful producer/domain terminology.
 
 ---
 
@@ -600,23 +1310,93 @@ Yes.
 
 ## Purpose
 
-Provides a short human-readable explanation of the Finding.
+Provides a concise human-readable description of the Finding.
 
 Example:
 
 ```json
 {
-  "summary": "Likely disposable temporary data"
+  "summary": "Physical network connection unavailable"
 }
 ```
 
-The summary should answer:
+The summary answers:
 
 > **What did the producer find?**
 
-It SHOULD NOT be the only representation of important evidence.
+It is not the sole authoritative representation.
 
-Clients may display the summary prominently, but structured fields remain authoritative for machine behaviour.
+Machine decisions should rely on structured fields and evidence.
+
+---
+
+# Field: `observations`
+
+## Type
+
+```text
+array of objects
+```
+
+## Required
+
+No.
+
+## Purpose
+
+Provides or references observations which contributed to the Finding.
+
+Example:
+
+```json
+{
+  "observations": [
+    {
+      "type": "network.interface.carrier",
+      "observed_at": "2026-10-30T07:00:00Z",
+      "data": {
+        "carrier": false
+      }
+    }
+  ]
+}
+```
+
+Observations describe what was measured or reported.
+
+Findings describe the producer's interpretation of those observations.
+
+---
+
+# Observation Versus Finding
+
+Example:
+
+```text
+OBSERVATION
+
+Network interface reports no carrier.
+```
+
+versus:
+
+```text
+FINDING
+
+Physical network connection unavailable.
+```
+
+versus:
+
+```text
+HYPOTHESIS
+
+Cable may be unplugged.
+```
+
+These MUST remain distinguishable.
+
+A no-carrier observation does not automatically prove that the cable itself is physically unplugged.
 
 ---
 
@@ -632,31 +1412,9 @@ array of objects
 
 No.
 
-Default conceptual value:
-
-```json
-[]
-```
-
 ## Purpose
 
 Explains why the Finding exists.
-
-Example:
-
-```json
-{
-  "evidence": [
-    {
-      "type": "rule_match",
-      "rule": "temporary-file-pattern",
-      "description": "Path matched a configured disposable-data rule."
-    }
-  ]
-}
-```
-
-Evidence is intentionally extensible.
 
 Every evidence object MUST contain:
 
@@ -664,55 +1422,66 @@ Every evidence object MUST contain:
 type
 ```
 
-Additional fields are defined by that evidence type.
-
----
-
-# Evidence Type: `rule_match`
-
 Example:
 
 ```json
 {
-  "type": "rule_match",
-  "rule": "temporary-file-pattern",
-  "description": "Path matched a configured disposable-data rule."
+  "evidence": [
+    {
+      "type": "charkive.rule_match",
+      "rule": "temporary-file-pattern",
+      "description": "Path matched a configured disposable-data rule."
+    }
+  ]
 }
 ```
 
-Possible fields:
+---
+
+# Evidence Namespaces
+
+Common evidence types may use general namespaces:
 
 ```text
-type
-rule
-description
+filesystem.metadata
+network.interface
+network.icmp
+system.service_state
+hardware.sensor
 ```
 
-A producer MAY add further evidence fields.
+Producer-specific evidence SHOULD use the producer namespace:
 
-Consumers SHOULD preserve unknown evidence fields.
+```text
+charkive.rule_match
+charkive.temporal_cluster
+sysmedic.event_log
+sysmedic.hardware_test
+vendor:<vendor>:diagnostic
+```
+
+This prevents specialist concepts from pretending to be universally defined.
 
 ---
 
 # Evidence Design Principle
 
-The user should ultimately be able to ask:
+A user should eventually be able to ask:
 
-> **Why did you flag this?**
+> **Why do you believe this?**
 
 and receive a meaningful answer.
 
-Therefore prefer:
+Prefer:
 
 ```json
 {
-  "type": "rule_match",
-  "rule": "cache-directory",
-  "description": "The containing directory matched a configured cache rule."
+  "type": "network.interface",
+  "description": "Interface reports no physical carrier."
 }
 ```
 
-over an unexplained:
+over:
 
 ```json
 {
@@ -720,78 +1489,294 @@ over an unexplained:
 }
 ```
 
-Explainability matters especially when Findings later lead to real-world actions.
+Explainability becomes increasingly important as Findings influence real decisions.
 
 ---
 
-# Field: `recommended_action`
+# Evidence May Contain Uncertainty
+
+Evidence does not need to support one absolute conclusion.
+
+For example:
+
+```text
+Recorded timestamp:
+2003
+
+Neighbouring activity:
+Different period
+
+Known source device:
+Camera with unreliable clock
+```
+
+may support:
+
+```text
+Temporal Anomaly
+```
+
+without proving an exact alternative date.
+
+The Finding should preserve that uncertainty.
+
+---
+
+# Field: `recommendations`
 
 ## Type
 
 ```text
-object
+array of objects
 ```
 
 ## Required
 
 No.
 
+## Purpose
+
+Describes possible next steps the producer recommends considering.
+
 Example:
 
 ```json
 {
-  "recommended_action": {
-    "type": "review_for_quarantine"
-  }
+  "recommendations": [
+    {
+      "type": "inspect_physical_connection",
+      "summary": "Inspect the physical network connection."
+    }
+  ]
 }
 ```
 
-## Purpose
-
-Describes what the producer recommends considering next.
-
-It does **not** authorise that action.
-
-This distinction is critical.
-
-```text
-FINDING
-   ↓
-RECOMMENDATION
-   ↓
-HUMAN / POLICY DECISION
-   ↓
-PROPOSED ACTION
-   ↓
-AUTHORISATION
-   ↓
-EXECUTION
-```
-
-A recommended action MUST NOT be interpreted as permission to modify reality.
-
----
-
-# Recommended Action v0.1
-
-Every recommended-action object MUST contain:
+Every recommendation MUST contain:
 
 ```text
 type
 ```
 
-Example action types may include:
+It SHOULD contain:
 
 ```text
-review
-review_for_quarantine
-investigate
-none
+summary
 ```
 
-Producer-specific recommendations may also exist.
+where a meaningful human-readable description is available.
 
-The executable operation, if one exists, belongs to the separate Proposed Action contract.
+---
+
+# Recommendations Are Not Actions
+
+This:
+
+```json
+{
+  "type": "review_for_quarantine"
+}
+```
+
+does not mean:
+
+```text
+QUARANTINE IT
+```
+
+Likewise:
+
+```json
+{
+  "type": "inspect_physical_connection"
+}
+```
+
+does not mean:
+
+```text
+CHANGE NETWORK CONFIGURATION
+```
+
+Recommendations inform decisions.
+
+They do not carry execution authority.
+
+---
+
+# Producer-Specific Recommendations
+
+Producer-specific recommendations SHOULD use namespaces.
+
+Examples:
+
+```text
+charkive.review_for_quarantine
+charkive.review_preservation
+sysmedic.run_hardware_test
+vna.inspect_physical_connection
+```
+
+Generic recommendations may eventually be standardised when several producers share the same semantics.
+
+---
+
+# Field: `relationships`
+
+## Type
+
+```text
+array of objects
+```
+
+## Required
+
+No.
+
+## Purpose
+
+Links the Finding to related objects.
+
+Examples might include:
+
+```text
+related Finding
+parent Finding
+root-cause Finding
+propagated symptom
+related asset
+related snapshot
+related event
+```
+
+Example:
+
+```json
+{
+  "relationships": [
+    {
+      "type": "caused_by",
+      "target_id": "finding:layer1-link-down"
+    }
+  ]
+}
+```
+
+Relationship vocabulary should remain small in v0.1.
+
+---
+
+# Root Cause and Propagated Symptoms
+
+Findings may represent either root causes or consequences.
+
+For example:
+
+```text
+L1 FINDING
+
+Physical link unavailable
+      |
+      +----> causes
+      |
+      v
+L2 FINDING
+
+Data-link connectivity unavailable
+      |
+      v
+L3 FINDING
+
+Network connectivity unavailable
+      |
+      v
+L4 FINDING
+
+Transport connection unavailable
+      |
+      v
+L7 FINDING
+
+Application unavailable
+```
+
+The ecosystem should preserve the distinction between:
+
+```text
+ROOT CAUSE
+```
+
+and:
+
+```text
+PROPAGATED SYMPTOM
+```
+
+This becomes particularly important in VNA gameplay.
+
+---
+
+# Relationship Type: `caused_by`
+
+Example:
+
+```json
+{
+  "type": "caused_by",
+  "target_id": "finding:layer1-link-down"
+}
+```
+
+This should only be used when the producer has sufficient evidence to assert a causal relationship.
+
+---
+
+# Relationship Type: `possibly_related_to`
+
+Example:
+
+```json
+{
+  "type": "possibly_related_to",
+  "target_id": "finding:packet-loss"
+}
+```
+
+This is appropriate when correlation exists but causation is not established.
+
+---
+
+# Relationship Type: `propagates_to`
+
+Example:
+
+```json
+{
+  "type": "propagates_to",
+  "target_id": "finding:application-unavailable"
+}
+```
+
+This may be useful where a lower-level condition has known consequences elsewhere.
+
+---
+
+# Relationship Honesty
+
+Do not turn:
+
+```text
+These happened together.
+```
+
+into:
+
+```text
+This caused that.
+```
+
+simply because stronger relationships are convenient for a game or visualisation.
+
+Evidence discipline applies to relationships too.
 
 ---
 
@@ -807,19 +1792,11 @@ boolean
 
 Yes.
 
-Example:
-
-```json
-{
-  "production_changed": false
-}
-```
-
 ## Purpose
 
-Explicitly states whether creation of the Finding itself caused a real-world production change.
+Explicitly records whether creation of the Finding itself changed the real-world system.
 
-For normal observation:
+Most Findings should say:
 
 ```json
 {
@@ -827,33 +1804,39 @@ For normal observation:
 }
 ```
 
-A Charkive scan which merely identifies a candidate therefore produces a Finding with:
+Observation should ordinarily be non-destructive.
+
+The field reinforces:
+
+```text
+FINDING
+≠
+ACTION
+```
+
+A Finding resulting from a scan, telemetry query, snapshot analysis, simulation, or diagnostic read should normally have:
 
 ```text
 production_changed = false
 ```
 
-This field exists to reinforce the boundary between:
+---
+
+# Why `production_changed` Exists
+
+The ecosystem deliberately separates:
 
 ```text
-OBSERVATION
+OBSERVE
+
+from
+
+CHANGE
 ```
 
-and:
+A game client or report consuming a Finding should be able to establish that the act of discovering the condition did not itself modify the production system.
 
-```text
-ACTION
-```
-
-For v0.1, Finding producers SHOULD normally produce:
-
-```json
-{
-  "production_changed": false
-}
-```
-
-Real modifications should ordinarily be represented separately through actions, results, and events.
+If analysis did involve changes, that fact must be explicit.
 
 ---
 
@@ -869,17 +1852,9 @@ object
 
 No.
 
-Example:
-
-```json
-{
-  "attributes": {}
-}
-```
-
 ## Purpose
 
-Provides an escape hatch for useful producer-specific metadata that does not yet justify promotion into the common Finding contract.
+Allows producer-specific metadata to travel with the Finding without polluting the shared contract.
 
 Example:
 
@@ -887,30 +1862,48 @@ Example:
 {
   "attributes": {
     "charkive": {
-      "scan_id": "scan:0192f7b2"
+      "scan_id": "charkive:scan:1234",
+      "classification": "candidate"
     }
   }
 }
 ```
 
-Shared consumers SHOULD NOT rely upon producer-specific attributes for core Finding semantics.
+or:
 
-If multiple producers repeatedly need the same attribute, it should be considered for promotion into a future common schema version.
+```json
+{
+  "attributes": {
+    "sysmedic": {
+      "collection_id": "SM-20261030-0733"
+    }
+  }
+}
+```
+
+Shared consumers SHOULD NOT depend on producer-specific attributes for core Finding behaviour.
+
+If several producers repeatedly need the same concept, it may be promoted into a future common schema version.
 
 ---
 
 # Minimal Valid Finding
 
-A minimal Finding v0.1 could be:
-
 ```json
 {
-  "schema": "filekive.finding/0.1",
+  "schema": "vna.finding/0.1",
   "id": "finding:001",
-  "producer": "charkive",
+  "producer": {
+    "id": "charkive",
+    "type": "application"
+  },
+  "source": {
+    "kind": "live"
+  },
   "observed_at": "2026-10-30T07:00:00Z",
   "category": "storage.disposable_candidate",
   "severity": "notice",
+  "state": "active",
   "subject": {
     "type": "storage_path",
     "storage_location_id": "storage:test",
@@ -923,265 +1916,881 @@ A minimal Finding v0.1 could be:
 
 ---
 
-# Full Charkive Example
+# Charkive Example
 
 ```json
 {
-  "schema": "filekive.finding/0.1",
-  "id": "finding:0192f7b2-001",
-  "producer": "charkive",
+  "schema": "vna.finding/0.1",
+  "id": "finding:charkive-001",
+  "producer": {
+    "id": "charkive",
+    "type": "application"
+  },
+  "source": {
+    "kind": "live",
+    "id": "charkive:scan:1234"
+  },
   "observed_at": "2026-10-30T07:00:00Z",
   "category": "storage.disposable_candidate",
   "severity": "notice",
+  "state": "active",
   "confidence": 0.97,
   "subject": {
     "type": "storage_path",
+    "asset_id": "asset:eddie",
     "storage_location_id": "storage:eddie:data",
     "path": "Projects/render/cache/frame-0001.tmp"
   },
-  "classification": "candidate",
   "summary": "Likely disposable render-cache data",
   "evidence": [
     {
-      "type": "rule_match",
+      "type": "charkive.rule_match",
       "rule": "render-cache",
-      "description": "The path matched a configured render-cache rule."
+      "description": "Path matched a configured render-cache rule."
     },
     {
-      "type": "file_metadata",
+      "type": "filesystem.metadata",
       "size_bytes": 1879048192
     }
   ],
-  "recommended_action": {
-    "type": "review_for_quarantine"
-  },
+  "recommendations": [
+    {
+      "type": "charkive.review_for_quarantine",
+      "summary": "Review the candidate before reversible quarantine."
+    }
+  ],
   "production_changed": false,
   "attributes": {
     "charkive": {
-      "scan_id": "scan:0192f7b2"
+      "scan_id": "charkive:scan:1234",
+      "classification": "candidate"
     }
   }
 }
 ```
+
+---
+
+# Charkive Temporal Anomaly Example
+
+```json
+{
+  "schema": "vna.finding/0.1",
+  "id": "finding:charkive-ta-001",
+  "producer": {
+    "id": "charkive",
+    "type": "application"
+  },
+  "source": {
+    "kind": "historical",
+    "id": "charkive:archaeology:collection-42"
+  },
+  "observed_at": "2026-10-30T07:00:00Z",
+  "category": "charkive.archaeology.temporal_anomaly",
+  "severity": "info",
+  "state": "active",
+  "confidence": 0.81,
+  "subject": {
+    "type": "collection",
+    "storage_location_id": "storage:archive",
+    "path": "Photos/Kodak"
+  },
+  "summary": "Recorded timestamps appear inconsistent with surrounding historical evidence.",
+  "evidence": [
+    {
+      "type": "charkive.recorded_time",
+      "description": "Photographs contain timestamps placing them in 2003."
+    },
+    {
+      "type": "charkive.activity_cluster",
+      "description": "Surrounding activity suggests the collection may belong to a different period."
+    },
+    {
+      "type": "charkive.source_device",
+      "description": "The collection is associated with a camera known to have had unreliable clock settings."
+    }
+  ],
+  "recommendations": [
+    {
+      "type": "charkive.review_temporal_context",
+      "summary": "Review the collection's historical context without changing original metadata."
+    }
+  ],
+  "production_changed": false
+}
+```
+
+The Finding preserves uncertainty.
+
+It does not silently rewrite the recorded timestamp.
+
+---
+
+# SysMedic Snapshot Example
+
+```json
+{
+  "schema": "vna.finding/0.1",
+  "id": "finding:sysmedic-001",
+  "producer": {
+    "id": "sysmedic",
+    "type": "application",
+    "version": "2026.10"
+  },
+  "source": {
+    "kind": "snapshot",
+    "id": "sysmedic:snapshot:SM-20261030-0733",
+    "captured_at": "2026-10-30T06:45:00Z"
+  },
+  "observed_at": "2026-10-30T06:45:00Z",
+  "category": "system.update.failure",
+  "severity": "warning",
+  "state": "active",
+  "subject": {
+    "type": "asset",
+    "asset_id": "asset:captured-windows-machine"
+  },
+  "summary": "Evidence indicates that a Windows update did not complete successfully.",
+  "evidence": [
+    {
+      "type": "sysmedic.event_log",
+      "description": "Relevant update failure evidence was captured from the source system."
+    }
+  ],
+  "recommendations": [
+    {
+      "type": "sysmedic.review_update_state",
+      "summary": "Review the captured Windows Update evidence."
+    }
+  ],
+  "production_changed": false,
+  "attributes": {
+    "sysmedic": {
+      "collection_id": "SM-20261030-0733"
+    }
+  }
+}
+```
+
+The source is explicitly:
+
+```text
+snapshot
+```
+
+Therefore a consumer MUST NOT present the Finding as proof that the condition still exists on the machine now.
+
+---
+
+# T4 Network Example
+
+```json
+{
+  "schema": "vna.finding/0.1",
+  "id": "finding:t4-network-001",
+  "producer": {
+    "id": "t4t",
+    "type": "application"
+  },
+  "source": {
+    "kind": "live",
+    "id": "marvin:network-scan:1234"
+  },
+  "observed_at": "2026-10-30T07:00:00Z",
+  "category": "network.response.degraded",
+  "severity": "warning",
+  "state": "active",
+  "confidence": 0.98,
+  "subject": {
+    "type": "asset",
+    "asset_id": "asset:network-device-42"
+  },
+  "summary": "Network response is slow and some probes were lost.",
+  "observations": [
+    {
+      "type": "network.icmp.rtt",
+      "observed_at": "2026-10-30T07:00:00Z",
+      "data": {
+        "value": 187,
+        "unit": "ms"
+      }
+    },
+    {
+      "type": "network.icmp.packet_loss",
+      "observed_at": "2026-10-30T07:00:00Z",
+      "data": {
+        "value": 25,
+        "unit": "percent"
+      }
+    }
+  ],
+  "production_changed": false
+}
+```
+
+T4 can then explain this same Finding as:
+
+```text
+T4Tots
+T4Teens
+T4Techies
+```
+
+without altering the Finding itself.
+
+---
+
+# VNA OSI Example
+
+```json
+{
+  "schema": "vna.finding/0.1",
+  "id": "finding:vna-layer1-001",
+  "producer": {
+    "id": "vna",
+    "type": "application"
+  },
+  "source": {
+    "kind": "synthetic",
+    "id": "tutorial:unplugged-cable"
+  },
+  "observed_at": "2026-10-30T07:00:00Z",
+  "category": "network.physical.link_down",
+  "severity": "warning",
+  "state": "active",
+  "confidence": 1.0,
+  "subject": {
+    "type": "network_interface",
+    "asset_id": "asset:tutorial-office-b",
+    "interface_id": "interface:ethernet-1"
+  },
+  "summary": "Physical network connection unavailable.",
+  "observations": [
+    {
+      "type": "network.interface.carrier",
+      "observed_at": "2026-10-30T07:00:00Z",
+      "data": {
+        "carrier": false
+      }
+    }
+  ],
+  "recommendations": [
+    {
+      "type": "vna.inspect_physical_connection",
+      "summary": "Inspect the Layer 1 physical connection."
+    }
+  ],
+  "production_changed": false
+}
+```
+
+The tutorial source is explicitly synthetic.
+
+No consumer should present it as a real infrastructure incident.
+
+---
+
+# Propagated OSI Finding Example
+
+A Layer 7 application symptom might reference the Layer 1 Finding.
+
+```json
+{
+  "schema": "vna.finding/0.1",
+  "id": "finding:vna-layer7-001",
+  "producer": {
+    "id": "vna",
+    "type": "application"
+  },
+  "source": {
+    "kind": "synthetic",
+    "id": "tutorial:unplugged-cable"
+  },
+  "observed_at": "2026-10-30T07:00:00Z",
+  "category": "application.unavailable",
+  "severity": "warning",
+  "state": "active",
+  "subject": {
+    "type": "application",
+    "asset_id": "asset:tutorial-office-b",
+    "application_id": "application:tutorial-service"
+  },
+  "summary": "Application communication is unavailable.",
+  "relationships": [
+    {
+      "type": "caused_by",
+      "target_id": "finding:vna-layer1-001"
+    }
+  ],
+  "production_changed": false
+}
+```
+
+This allows VNA to show:
+
+```text
+L7 symptom
+   |
+   v
+L1 root cause
+```
+
+without pretending every failed layer is independently broken.
 
 ---
 
 # FileCity Consumption
 
-FileCity should be able to consume the Finding without understanding Charkive internals.
-
-It receives:
-
-```text
-storage_location_id:
-storage:eddie:data
-
-path:
-Projects/render/cache/frame-0001.tmp
-```
-
-FileCity can resolve that against its own world:
-
-```text
-EDDIE DISTRICT
-      ↓
-PROJECTS BUILDING
-      ↓
-RENDER FLOOR
-      ↓
-CACHE AREA
-```
-
-The Finding remains unchanged.
-
-FileCity owns the geography.
-
-Charkive owns the Finding.
-
----
-
-# Rendering
-
-A renderer may interpret severity visually.
+FileCity consumes Findings without becoming their producer.
 
 For example:
 
 ```text
-info      → informational marker
-notice    → attention marker
-warning   → warning state
-critical  → critical state
-```
-
-A future game might render these as:
-
-```text
-notice    → municipal inspection
-warning   → police / maintenance response
-critical  → emergency response
-```
-
-These are presentation decisions.
-
-The Finding itself contains no:
-
-```text
-fire_engine
-police_car
-sprite
-3D mesh
-particle effect
-BeamNG object
-Unreal asset
-```
-
-Renderer-specific data does not belong in Finding v0.1.
-
----
-
-# Read-Only First Integration
-
-The first Charkive → FileCity integration should use Findings as read-only information.
-
-```text
-REAL FILESYSTEM
-      ↓
-CHARKIVE SCAN
-      ↓
-FINDING v0.1
-      ↓
-FILECITY
-      ↓
-WORLD OBJECT CHANGES STATE
-      ↓
-USER INSPECTS
-      ↓
-FINDING + EVIDENCE
-```
-
-No filesystem change is required.
-
-This is the first target implementation for Finding v0.1.
-
----
-
-# Finding Is Not Event
-
-A Finding describes an observed condition.
-
-```text
-"Likely disposable data exists here."
-```
-
-An Event describes something that happened.
-
-```text
-"A scan completed."
-```
-
-or:
-
-```text
-"Data was quarantined."
-```
-
-These contracts are separate.
-
-A Finding may cause or accompany Events, but the terms MUST NOT be treated as synonyms.
-
----
-
-# Finding Is Not Action
-
-A Finding may contain:
-
-```json
-{
-  "recommended_action": {
-    "type": "review_for_quarantine"
-  }
-}
-```
-
-That does not mean:
-
-```text
-QUARANTINE IT
-```
-
-The consumer may later submit a separate:
-
-```text
-filekive.proposed_action/*
-```
-
-The authoritative provider then decides whether that operation is:
-
-```text
-valid
-permitted
-safe
-still applicable
-authorised
-```
-
-Finding v0.1 itself cannot authorise execution.
-
----
-
-# Finding Is Not World Object
-
-A Finding might concern:
-
-```text
+VNA Finding
+    |
+    v
+Subject:
 storage:eddie:data
 Projects/cache
-```
-
-FileCity might represent that as:
-
-```text
+    |
+    v
+FILECITY
+    |
+    v
+Eddie District
 Projects Tower
-Floor 7
+Cache Floor
 ```
 
-The Finding does not know or care.
-
-This allows the same Finding to appear in:
+FileCity owns:
 
 ```text
-CLI
-Charkive Web
-FileCity
-Retro game
-BoreDOOM!
-Future 3D client
+district
+building
+floor
+route
+visual state
 ```
 
-without changing its semantics.
+The Finding owns:
+
+```text
+condition
+severity
+state
+evidence
+provenance
+```
+
+FileCity MUST retain a reference to the original Finding.
+
+---
+
+# FileCity Visualisation Rule
+
+A FileCity state change should remain traceable:
+
+```text
+VISUAL WARNING
+      |
+      v
+WORLD OBJECT
+      |
+      v
+FINDING
+      |
+      v
+EVIDENCE
+      |
+      v
+SOURCE
+```
+
+This implements the ecosystem rule:
+
+> **Never hide reality behind the metaphor.**
+
+---
+
+# T4 Consumption
+
+T4 consumes Findings and produces audience-appropriate explanations.
+
+Conceptually:
+
+```text
+                   FINDING
+                      |
+                      v
+                     T4
+                      |
+          ┌───────────┼───────────┐
+          |           |           |
+          v           v           v
+       T4Tots      T4Teens    T4Techies
+```
+
+T4 MUST NOT:
+
+```text
+change category
+change severity
+change state
+invent observations
+invent certainty
+erase provenance
+```
+
+merely to simplify language.
+
+---
+
+# BoreDOOM! and Gameplay Consumption
+
+Game systems may convert Findings into:
+
+```text
+mission
+objective
+incident
+visual state
+story element
+```
+
+The game representation is not authoritative.
+
+```text
+FINDING
+   |
+   v
+GENERALISATION
+   |
+   v
+MISSION
+   |
+   v
+PLAYER
+```
+
+Completing the mission does not automatically resolve the Finding.
+
+Only the authoritative producer or VNA orchestration layer may determine that reality has changed sufficiently for the Finding to become resolved.
+
+---
+
+# Gameplay Is Not Resolution
+
+This MUST NOT happen:
+
+```text
+PLAYER CLICKS "FIX"
+      |
+      v
+FINDING = RESOLVED
+```
+
+Instead:
+
+```text
+PLAYER PROPOSES ACTION
+      |
+      v
+ACTION AUTHORISED
+      |
+      v
+ACTION EXECUTED
+      |
+      v
+RESULT VERIFIED
+      |
+      v
+REALITY RE-OBSERVED
+      |
+      v
+FINDING RESOLVED
+```
+
+The game cannot wish reality healthy.
+
+---
+
+# Event Relationship
+
+Finding and Event remain separate contracts.
+
+A Finding says:
+
+```text
+This condition exists.
+```
+
+An Event says:
+
+```text
+Something happened.
+```
+
+Examples:
+
+```text
+finding created
+finding acknowledged
+finding suppressed
+finding resolved
+finding reactivated
+action proposed
+action executed
+action failed
+verification completed
+```
+
+Lifecycle transitions SHOULD eventually generate Events.
+
+---
+
+# Suggested Finding Lifecycle Events
+
+Potential Event types include:
+
+```text
+vna.finding.created
+vna.finding.acknowledged
+vna.finding.suppressed
+vna.finding.resolved
+vna.finding.reactivated
+```
+
+These belong to the Event contract.
+
+They do not require additional timestamp fields to be added to every Finding.
+
+This maintains:
+
+```text
+Finding
+= current condition and disposition
+
+Event
+= something happened at a point in time
+```
+
+---
+
+# Finding Is Not Observation
+
+An Observation says:
+
+```text
+Interface reports carrier=false.
+```
+
+A Finding says:
+
+```text
+Physical network connection unavailable.
+```
+
+An Observation may exist without producing a Finding.
+
+A Finding may reference several Observations.
+
+---
+
+# Finding Is Not Recommendation
+
+A Finding says:
+
+```text
+Storage appears critically constrained.
+```
+
+A Recommendation says:
+
+```text
+Review disposable-data candidates.
+```
+
+These are distinct.
+
+---
+
+# Finding Is Not Proposed Action
+
+A Finding says:
+
+```text
+Possible disposable data exists.
+```
+
+A Proposed Action says:
+
+```text
+Request reversible quarantine of these reviewed candidates.
+```
+
+The Proposed Action requires separate validation and authorisation.
+
+---
+
+# Finding Is Not Verified Result
+
+A Verified Result says:
+
+```text
+The requested operation executed and its expected outcome was independently verified.
+```
+
+A Finding may be re-evaluated after that result.
+
+The Verified Result does not itself silently rewrite the Finding.
+
+---
+
+# Lifecycle and Events
+
+The Finding object carries current state:
+
+```text
+active
+acknowledged
+resolved
+suppressed
+```
+
+The Event stream records transitions.
+
+Example:
+
+```text
+Finding
+state = active
+
+        ↓
+
+Event
+vna.finding.acknowledged
+
+        ↓
+
+Finding
+state = acknowledged
+
+        ↓
+
+Event
+vna.finding.resolved
+
+        ↓
+
+Finding
+state = resolved
+```
+
+This allows consumers to reconstruct history without bloating the current Finding record.
+
+---
+
+# Historical Findings
+
+Resolved Findings SHOULD remain available for appropriate historical inspection.
+
+They may be useful for:
+
+```text
+trend analysis
+training
+audit
+incident review
+Data Archaeology
+VNA world history
+repeated-fault detection
+```
+
+Resolved does not mean forgotten.
+
+---
+
+# Temporal Findings
+
+Findings involving time should preserve different kinds of temporal knowledge.
+
+The wider ecosystem may need to distinguish:
+
+```text
+recorded time
+observed time
+inferred time
+user-confirmed time
+```
+
+These detailed semantics may live inside producer-specific evidence until a common Temporal model is justified.
+
+No producer should silently replace recorded evidence with inferred history.
+
+---
+
+# Privacy and Generalisation
+
+Findings may contain sensitive data.
+
+Examples include:
+
+```text
+hostnames
+paths
+user-created filenames
+network identities
+device identities
+infrastructure relationships
+vendor equipment
+historical activity
+```
+
+Before Findings reach clients that do not need full fidelity, VNA may generalise them.
+
+Conceptually:
+
+```text
+REAL FINDING
+
+Host:
+EDDIE
+
+Path:
+/srv/private/archive
+
+        |
+        v
+
+GENERALISATION
+
+Asset:
+SERVER-104
+
+Location:
+Archive District
+```
+
+The generalised representation should preserve the technical shape of the condition while removing unnecessary identity information.
+
+---
+
+# Generalisation Does Not Change Meaning
+
+Generalisation may change:
+
+```text
+identity
+names
+paths
+topology precision
+presentation
+```
+
+It MUST NOT silently change:
+
+```text
+category
+severity
+state
+technical meaning
+source kind
+confidence
+```
+
+unless the generalised Finding explicitly records that transformation.
+
+---
+
+# Security Boundary
+
+Findings are data.
+
+They are not executable commands.
+
+All Finding fields MUST be treated as untrusted input at application boundaries.
+
+This includes:
+
+```text
+id
+summary
+path
+evidence
+attributes
+producer values
+recommendation text
+relationship IDs
+```
+
+Consumers MUST NOT interpolate Finding content directly into:
+
+```text
+shell commands
+SQL
+filesystem operations
+HTML
+privileged APIs
+game scripting
+```
+
+without appropriate validation, escaping, and authorisation.
+
+---
+
+# Transport Independence
+
+Finding v0.1 defines an object.
+
+It does not mandate a transport.
+
+Possible transports include:
+
+```text
+JSON file
+HTTP API
+local IPC
+event stream
+message queue
+snapshot package
+test fixture
+database record
+```
+
+The meaning should remain the same.
 
 ---
 
 # Validation Rules
 
-A Finding v0.1 is valid only when:
+A valid Finding v0.1 MUST satisfy:
 
-1. `schema` equals `filekive.finding/0.1`.
+1. `schema` equals `vna.finding/0.1`.
 2. `id` is a non-empty string.
-3. `producer` is a non-empty string.
-4. `observed_at` is a valid timestamp.
-5. `category` is a non-empty string.
-6. `severity` is one of the defined v0.1 severity values.
-7. `subject` is an object containing a recognised `type`.
-8. `summary` is a non-empty string.
-9. `production_changed` is boolean.
-10. If supplied, `confidence` is between `0.0` and `1.0`.
-11. If supplied, `evidence` is an array of evidence objects.
-12. Every evidence object contains a non-empty `type`.
-13. If supplied, `recommended_action` contains a non-empty `type`.
-14. If supplied, `attributes` is an object.
+3. `producer` is an object.
+4. `producer.id` is a non-empty string.
+5. `producer.type` is a non-empty string.
+6. `source` is an object.
+7. `source.kind` is one of the recognised v0.1 source kinds.
+8. `observed_at` is a valid UTC ISO 8601 timestamp.
+9. `category` is a non-empty string.
+10. `severity` is one of the recognised v0.1 severity values.
+11. `state` is one of the recognised v0.1 lifecycle states.
+12. `subject` is an object.
+13. `subject.type` is a non-empty string.
+14. `summary` is a non-empty string.
+15. `production_changed` is a boolean.
+16. If supplied, `confidence` is between `0.0` and `1.0`.
+17. If supplied, `observations` is an array.
+18. If supplied, `evidence` is an array.
+19. Every evidence item contains a non-empty `type`.
+20. If supplied, `recommendations` is an array.
+21. Every recommendation contains a non-empty `type`.
+22. If supplied, `relationships` is an array.
+23. Every relationship contains `type` and `target_id`.
+24. If supplied, `attributes` is an object.
 
-A consumer SHOULD reject structurally invalid Findings at its ingestion boundary rather than attempting to silently repair them.
+Consumers SHOULD reject structurally invalid Findings rather than silently repairing them.
 
 ---
 
@@ -1189,81 +2798,31 @@ A consumer SHOULD reject structurally invalid Findings at its ingestion boundary
 
 ## Producer
 
-A producer emitting v0.1 MUST satisfy the required v0.1 fields.
+A v0.1 producer:
 
-It MAY add additional fields.
+- MUST provide all required fields
+- MAY provide optional fields
+- MAY provide additional unknown fields
+- SHOULD retain stable Finding IDs where appropriate
+- SHOULD preserve evidence provenance
+- SHOULD emit `production_changed: false` for read-only analysis
+- MUST distinguish real and synthetic source kinds
 
 ## Consumer
 
 A v0.1 consumer:
 
-- MUST validate required fields it depends upon
+- MUST validate fields it depends upon
 - MUST understand the v0.1 severity vocabulary
-- SHOULD ignore unknown top-level fields
-- SHOULD preserve unknown fields when storing and forwarding Findings where practical
-- MUST NOT assign semantics to unknown categories
-- MUST NOT turn a recommended action directly into execution
-- MUST NOT assume missing `confidence` means zero confidence
-
----
-
-# Security Boundary
-
-Finding v0.1 should be safe to transport through read-oriented components because it contains observations, not executable commands.
-
-Nevertheless, all Finding content should be treated as untrusted input at system boundaries.
-
-In particular:
-
-```text
-path
-summary
-evidence text
-attributes
-producer-supplied identifiers
-```
-
-must not be interpolated into:
-
-```text
-shell commands
-SQL
-HTML
-filesystem operations
-privileged API calls
-```
-
-without the appropriate validation or escaping.
-
-A Finding which says:
-
-```text
-path = something
-```
-
-is describing a path.
-
-It is not instructing the consumer to operate on that path.
-
----
-
-# Privacy
-
-Findings may expose sensitive information such as:
-
-```text
-filenames
-directory structures
-storage identifiers
-machine relationships
-user-created names
-```
-
-Consumers should therefore expose Findings only to users authorised to inspect the underlying data.
-
-Future ecosystem transports may require redaction or summary mechanisms.
-
-Those mechanisms are outside Finding v0.1.
+- MUST understand the v0.1 lifecycle vocabulary
+- SHOULD ignore unknown fields
+- SHOULD preserve unknown fields when forwarding Findings
+- MUST NOT invent semantics for unknown categories
+- MUST NOT execute recommendations automatically
+- MUST NOT assume missing confidence means zero confidence
+- MUST preserve producer identity
+- MUST preserve source kind
+- MUST treat all Finding content as untrusted input
 
 ---
 
@@ -1272,67 +2831,162 @@ Those mechanisms are outside Finding v0.1.
 Finding v0.1 intentionally does not fully define:
 
 ```text
-finding resolution lifecycle
-acknowledgement
+revision numbers
+optimistic concurrency
 assignment
-suppression
-expiry
-deduplication
-revision history
-correlation
-multi-subject findings
-remediation execution
+ownership
+suppression expiry
+acknowledgement comments
+resolution reasons
+automatic deduplication
+correlation algorithms
+multi-subject conditions
 professional authority
-game missions
+credential requirements
+action execution
 renderer behaviour
+game missions
 transport protocol
+authentication
+authorisation
 ```
 
-Those concerns can be added when real implementations demonstrate the need.
-
-The objective of v0.1 is much smaller:
-
-> **Allow one system to say what it found, where it found it, how important it believes the condition is, why it believes that, and what it recommends considering next.**
+These should be added only when real implementation work demonstrates the need.
 
 ---
 
-# v0.1 First Implementation Target
+# First Implementation Target
 
-The first implementation should prove:
+The first implementation should remain deliberately small.
+
+Choose one existing real producer.
+
+T4T/MARVIN is a good candidate because it already has live observations.
+
+For example:
 
 ```text
-CHARKIVE
-   ↓
-Finding v0.1
-   ↓
-JSON
-   ↓
-FILECITY
-   ↓
-Validate
-   ↓
-Resolve subject
-   ↓
-Show affected building
-   ↓
-Display summary + evidence
+MARVIN
+   |
+   v
+ICMP OBSERVATION
+   |
+   v
+vna.finding/0.1
+   |
+   v
+T4
+   |
+   ├── T4Tots
+   ├── T4Teens
+   └── T4Techies
 ```
 
-Nothing else is required to validate the contract.
+Success means:
 
-No action.
+> Three radically different explanations consume the same Finding ID and evidence.
 
-No quarantine.
+---
 
-No fire engine.
+# Second Implementation Target
 
-No VNA.
+Charkive:
 
-No BoreDOOM!.
+```text
+REAL STORAGE
+     |
+     v
+CHARKIVE
+     |
+     v
+vna.finding/0.1
+     |
+     v
+FILECITY
+     |
+     v
+VISIBLE CONDITION
+     |
+     v
+USER INSPECTS
+     |
+     v
+ORIGINAL FINDING + EVIDENCE
+```
 
-Just:
+No filesystem action is required.
 
-> **Charkive found something real, and FileCity understood it.**
+---
+
+# Third Implementation Target
+
+SysMedic:
+
+```text
+RUNNING OR OFFLINE MACHINE
+          |
+          v
+      SYSMEDIC
+          |
+          v
+ENCRYPTED SNAPSHOT
+          |
+          v
+       IMPORT
+          |
+          v
+      ANALYSIS
+          |
+          v
+vna.finding/0.1
+          |
+          v
+        VNA
+```
+
+The Finding retains:
+
+```text
+source.kind = snapshot
+```
+
+so downstream consumers know they are investigating captured state.
+
+---
+
+# Fourth Implementation Target
+
+VNA synthetic OSI tutorial:
+
+```text
+SYNTHETIC WORLD
+      |
+      v
+L1 LINK FAILURE
+      |
+      v
+ROOT-CAUSE FINDING
+      |
+      v
+PROPAGATED FINDINGS
+      |
+      v
+OSI TOWER
+      |
+      v
+PLAYER INVESTIGATION
+```
+
+The same Finding contract now works for:
+
+```text
+real telemetry
+real storage
+captured machines
+synthetic training
+```
+
+At that point the shared model has proved its value.
 
 ---
 
@@ -1341,23 +2995,43 @@ Just:
 A Finding should always make it possible to answer:
 
 ```text
-WHAT did you find?
+WHAT did we find?
 
-WHERE did you find it?
+WHO found it?
 
-WHEN did you observe it?
+WHAT kind of source produced it?
 
-WHO produced this conclusion?
+WHAT does it affect?
 
-HOW important is it?
+WHEN was it observed?
 
-HOW confident are you?
+HOW serious is it?
 
-WHY do you believe it?
+IS it still active?
 
-WHAT do you suggest I consider doing?
+HAS somebody acknowledged it?
 
-DID observing it change anything?
+HAS it deliberately been suppressed?
+
+HAS reality shown it to be resolved?
+
+HOW confident are we?
+
+WHAT observations support it?
+
+WHAT evidence supports the interpretation?
+
+WHAT other Findings relate to it?
+
+WHAT do we recommend considering?
+
+DID observing it change reality?
 ```
 
-If Finding v0.1 answers those questions cleanly, it is doing its job.
+And every consumer should remember:
+
+> **A Finding reports something about reality.**
+
+> **It does not grant permission to change reality.**
+
+That distinction is the foundation on which the rest of the VNA ecosystem can safely become much more ambitious.
